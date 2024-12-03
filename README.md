@@ -6,5 +6,6 @@ This is a simple HTTP server and command line client written in go used to store
 ## Installtion
 
 ## License
+GPL-3.0 license
 
 ## Tests
