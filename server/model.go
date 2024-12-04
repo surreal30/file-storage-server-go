@@ -2,9 +2,6 @@ package server
 
 import (
     "time"
-
-    "gorm.io/driver/mysql"
-    "gorm.io/gorm"
 )
 
 type File struct {
