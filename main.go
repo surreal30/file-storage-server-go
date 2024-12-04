@@ -88,6 +88,39 @@ func getFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     }
 }
 
+func deleteFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+    r.ParseMultipartForm(10 << 20)
+    files := r.MultipartForm.File["files"]
+
+    for _, fileHeader := range files {
+
+        file, err := fileHeader.Open()
+        if err != nil {
+            http.Error(w, fmt.Sprintf("Error opening file: %v", err), http.StatusInternalServerError)
+            return
+        }
+        defer file.Close()
+
+        // Read the file content into a byte slice
+        fileContent, err := io.ReadAll(file)
+        if err != nil {
+            http.Error(w, fmt.Sprintf("Error reading file content: %v", err), http.StatusInternalServerError)
+            return
+        }
+
+        hashDigest := sha256.Sum256(fileContent)
+        hashString := hex.EncodeToString(hashDigest[:])
+
+        err = server.DeleteFile(db, hashString)
+        if err != nil {
+            http.Error(w, fmt.Sprintf("Some error occured while deleting, %s", err), http.StatusInternalServerError)
+            return
+        }
+    }
+
+    fmt.Fprintln(w, "File deleted successfully")
+}
+
 func main() {
     db, err := server.ConnectToDatabase()
     if err != nil {
@@ -102,6 +135,10 @@ func main() {
     http.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
         getFiles(w, r, db)
     })
+    http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
+        deleteFile(w, r, db)
+    })
+
 
     err = http.ListenAndServe(":2021", nil)
 

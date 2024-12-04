@@ -56,6 +56,21 @@ func GetFiles(db *gorm.DB) ([]File, error) {
     return files, nil 
 }
 
+func DeleteFile(db *gorm.DB, key string) (error) {
+	var file File
+
+	result := db.Where("hash_digest = ?", key).Delete(&file)
+	if result.Error != nil {
+        return result.Error
+    }
+
+    if result.RowsAffected == 0 {
+        return fmt.Errorf("file not found")
+    }
+
+    return nil
+}
+
 func CheckDuplicateHash(db *gorm.DB, hashDigest string) error {
     var file File
     // Query to find if a file with the given hash_digest exists
