@@ -36,3 +36,28 @@ func ConnectToDatabase() (*gorm.DB, error) {
 
 	return db, nil
 }
+
+func CreateFile(db *gorm.DB, file File) error {
+	fmt.Printf(file.Name)
+	// Create the new file record
+	if err := db.Create(&file).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+func CheckDuplicateHash(db *gorm.DB, hashDigest string) error {
+    var file File
+    // Query to find if a file with the given hash_digest exists
+    result := db.Where("hash_digest = ?", hashDigest).First(&file)
+    if result.Error != nil {
+        if result.Error == gorm.ErrRecordNotFound {
+            // If no record is found, it's not a duplicate, return nil
+            return nil
+        }
+        // If there is any other error, return it
+        return result.Error
+    }
+    // If the file is found, it's a duplicate, return an error
+    return fmt.Errorf("file with hash_digest %s already exists", hashDigest)
+}
