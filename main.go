@@ -121,6 +121,64 @@ func deleteFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintln(w, "File deleted successfully")
 }
 
+func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+    r.ParseMultipartForm(10 << 20)
+    files := r.MultipartForm.File["files"]
+
+    for _, fileHeader := range files {
+
+        uploadedFile, err := fileHeader.Open()
+        if err != nil {
+            http.Error(w, fmt.Sprintf("Error opening file: %v", err), http.StatusInternalServerError)
+            return
+        }
+        defer uploadedFile.Close()
+
+        // Read the file content into a byte slice
+        fileContent, err := io.ReadAll(uploadedFile)
+        if err != nil {
+            http.Error(w, fmt.Sprintf("Error reading file content: %v", err), http.StatusInternalServerError)
+            return
+        }
+
+        hashDigest := sha256.Sum256(fileContent)
+        hashString := hex.EncodeToString(hashDigest[:])
+
+        existingFile, err := server.GetFileByName(db, fileHeader.Filename)
+
+        // If err is nil then the file has been found 
+        if err == nil {
+            existingFile.Content = string(fileContent)
+            existingFile.HashDigest = hashString
+            existingFile.UpdatedAt = time.Now()
+
+            err = server.UpdateFile(db, existingFile)
+            if err != nil {
+                http.Error(w, fmt.Sprintf("Some error occured while updating, %s", err), http.StatusInternalServerError)
+                return
+            }
+            fmt.Fprintln(w, "Files updated successfully\n")
+            return
+        }
+
+        // If file is not found
+        fileInfo := server.File{
+            Name:       fileHeader.Filename,
+            HashDigest: hashString, 
+            CreatedAt:  time.Now(),
+            UpdatedAt:  time.Now(),
+            Content:    string(fileContent), 
+        }
+
+        if err := server.CreateFile(db, fileInfo); err != nil {
+            http.Error(w, fmt.Sprintf("Error saving file to database: %v", err), http.StatusInternalServerError)
+            return
+        }
+    }
+
+    fmt.Fprintln(w, "Files uploaded successfully")
+}
+
 func main() {
     db, err := server.ConnectToDatabase()
     if err != nil {
@@ -137,6 +195,9 @@ func main() {
     })
     http.HandleFunc("/delete", func(w http.ResponseWriter, r *http.Request) {
         deleteFile(w, r, db)
+    })
+    http.HandleFunc("/update", func(w http.ResponseWriter, r *http.Request) {
+        putFile(w, r, db)
     })
 
 

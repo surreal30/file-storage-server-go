@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -66,6 +67,25 @@ func DeleteFile(db *gorm.DB, key string) (error) {
 
     if result.RowsAffected == 0 {
         return fmt.Errorf("file not found")
+    }
+
+    return nil
+}
+
+func GetFileByName(db *gorm.DB, name string) (*File, error) {
+    var file File
+    result := db.Where("name = ?", name).First(&file)
+    if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+        return nil, errors.New("file not found")
+    } else if result.Error != nil {
+        return nil, result.Error
+    }
+    return &file, nil
+}
+
+func UpdateFile(db *gorm.DB, file *File) error {
+	if err := db.Save(&file).Error; err != nil {
+        return err
     }
 
     return nil
