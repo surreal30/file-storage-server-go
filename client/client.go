@@ -2,9 +2,11 @@ package main
 
 import (
     "bufio"
+    "bytes"
     "fmt"
     "io"
     "log"
+    "mime/multipart"
     "net/http"
     "os"
     "strings"
@@ -64,6 +66,55 @@ func getFiles() {
 
 }
 
+func deleteFile(filename string) error {
+    file, err := os.Open(filename)
+    if err != nil {
+        return fmt.Errorf("Error opening file: %v", err)
+    }
+    defer file.Close()
+
+    var requestBody bytes.Buffer
+    writer := multipart.NewWriter(&requestBody)
+
+    // Add the file to the request body
+    part, err := writer.CreateFormFile("files", filename)
+    if err != nil {
+        return fmt.Errorf("Error creating form file: %v", err)
+    }
+
+    _, err = io.Copy(part, file)
+    if err != nil {
+        return fmt.Errorf("Error copying file content: %v", err)
+    }
+
+    err = writer.Close()
+    if err != nil {
+        return fmt.Errorf("Error closing writer: %v", err)
+    }
+
+    url := "http://localhost:2021/delete"
+    req, err := http.NewRequest("DELETE", url, &requestBody)
+    if err != nil {
+        return fmt.Errorf("Error creating request: %v", err)
+    }
+
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return fmt.Errorf("Error sending request: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("Error: received non-OK response: %v", resp.Status)
+    }
+
+    fmt.Println("File successfully deleted!")
+    return nil
+}
+
 func main() {
     // Start listening for input commands from the user
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
@@ -80,7 +131,14 @@ func main() {
         command := strings.TrimSpace(scanner.Text())
 
         // If 'store' is entered, send a request to the server
-        if command == "store" {
+        if strings.HasPrefix(command, "store rm ") {
+            filename := strings.TrimPrefix(command, "store rm ")
+            fmt.Printf("Sending delete request for file: %s\n", filename)
+            err := deleteFile(filename)
+            if err != nil {
+                log.Printf("Error: %v\n", err)
+            }
+        } else if command == "store" {
             fmt.Println("Sending request to the server...")
             pingServer()
         } else if command == "store ls" {
