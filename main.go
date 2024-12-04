@@ -74,6 +74,20 @@ func postFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintln(w, "Files uploaded successfully")
 }
 
+
+func getFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+    // Fetch all files from the database
+    files, err := server.GetFiles(db)
+    if err != nil {
+        http.Error(w, fmt.Sprintf("Error fetching files: %v", err), http.StatusInternalServerError)
+        return
+    }
+
+    for _, file := range files {
+        fmt.Fprintf(w, "File ID: %d, Name: %s \n", file.ID, file.Name)
+    }
+}
+
 func main() {
     db, err := server.ConnectToDatabase()
     if err != nil {
@@ -81,10 +95,12 @@ func main() {
     }
     fmt.Printf("DB connected\n")
 
-
     http.HandleFunc("/ping", getPing)
     http.HandleFunc("/add", func(w http.ResponseWriter, r *http.Request) {
-        postFiles(w, r, db) // Pass the db to postFiles
+        postFiles(w, r, db)
+    })
+    http.HandleFunc("/list", func(w http.ResponseWriter, r *http.Request) {
+        getFiles(w, r, db)
     })
 
     err = http.ListenAndServe(":2021", nil)

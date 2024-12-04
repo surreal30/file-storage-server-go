@@ -46,6 +46,16 @@ func CreateFile(db *gorm.DB, file File) error {
 	return nil
 }
 
+func GetFiles(db *gorm.DB) ([]File, error) {
+	var files []File
+
+	result := db.Find(&files)  // Retrieve all records from the 'files' table
+    if result.Error != nil {
+        return nil, result.Error  // Return the error if something goes wrong
+    }
+    return files, nil 
+}
+
 func CheckDuplicateHash(db *gorm.DB, hashDigest string) error {
     var file File
     // Query to find if a file with the given hash_digest exists
