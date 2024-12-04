@@ -39,6 +39,31 @@ func pingServer() {
     fmt.Printf("%s\n", string(body))
 }
 
+func getFiles() {
+    serverURL := "http://localhost:2021/list"
+
+    resp, err := http.Get(serverURL)
+    if err != nil {
+        log.Println("Error sending request:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
+        return
+    }
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Println("Error reading response body:", err)
+        return
+    }
+
+    fmt.Printf("%s\n", string(body))
+
+}
+
 func main() {
     // Start listening for input commands from the user
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
@@ -58,6 +83,8 @@ func main() {
         if command == "store" {
             fmt.Println("Sending request to the server...")
             pingServer()
+        } else if command == "store ls" {
+            getFiles()            
         } else if command == "exit" {
             // Exit the program if 'exit' is entered
             fmt.Println("Exiting program...")
