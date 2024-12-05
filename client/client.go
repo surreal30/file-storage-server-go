@@ -255,6 +255,35 @@ func getWC(baseURL string) (string, error) {
     return string(body), nil
 }
 
+func getFW(baseURL string, limit string, order string) (string, error) {
+    serverURL := baseURL + "/fw?limit=" + limit + "&order=" + order
+
+    // Send a GET request
+    resp, err := http.Get(serverURL)
+    if err != nil {
+        log.Println("Error sending request:", err)
+        return "", err
+    }
+    defer resp.Body.Close()
+
+    // Check if status code is OK
+    if resp.StatusCode != http.StatusOK {
+        log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
+        return "", err
+    }
+
+    // Read the response body
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Println("Error reading response body:", err)
+        return "", err
+    }
+
+    // Print the response body
+    fmt.Printf("%s\n", string(body))
+    return string(body), nil
+}
+
 
 func main() {
     baseURL := "http://localhost:2021"
@@ -301,7 +330,12 @@ func main() {
             fmt.Println("Sending request to the server...")
             pingServer(baseURL)
         } else if command == "store ls" {
-            getFiles(baseURL)            
+            getFiles(baseURL) 
+        } else if strings.HasPrefix(command, "store freq-words") {
+            parts := strings.Fields(command)
+            limit := parts[3]
+            order := strings.Split(parts[4], "=")[1]
+            getFW(baseURL, limit, order)
         } else if command == "exit" {
             // Exit the program if 'exit' is entered
             fmt.Println("Exiting program...")
