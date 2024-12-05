@@ -69,7 +69,7 @@ func getFiles() {
 func deleteFile(filename string) error {
     file, err := os.Open(filename)
     if err != nil {
-        return fmt.Errorf("Error opening file: %v", err)
+        return fmt.Errorf("Error opening %s: %v", filename, err)
     }
     defer file.Close()
 
@@ -115,6 +115,61 @@ func deleteFile(filename string) error {
     return nil
 }
 
+func putFile(filename string) error {
+    file, err := os.Open(filename)
+    if err != nil {
+        return fmt.Errorf("Error opening %s: %v", filename, err)
+    }
+    defer file.Close()
+
+    var requestBody bytes.Buffer
+    writer := multipart.NewWriter(&requestBody)
+
+    // Add the file to the request body
+    part, err := writer.CreateFormFile("files", filename)
+    if err != nil {
+        return fmt.Errorf("Error creating form file: %v", err)
+    }
+
+    _, err = io.Copy(part, file)
+    if err != nil {
+        return fmt.Errorf("Error copying file content: %v", err)
+    }
+
+    err = writer.Close()
+    if err != nil {
+        return fmt.Errorf("Error closing writer: %v", err)
+    }
+
+    url := "http://localhost:2021/update"
+    req, err := http.NewRequest("PUT", url, &requestBody)
+    if err != nil {
+        return fmt.Errorf("Error creating request: %v", err)
+    }
+
+    req.Header.Set("Content-Type", writer.FormDataContentType())
+
+    client := &http.Client{}
+    resp, err := client.Do(req)
+    if err != nil {
+        return fmt.Errorf("Error sending request: %v", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return fmt.Errorf("Error: received non-OK response: %v", resp.Status)
+    }
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Println("Error updating the file: ", err)
+        return nil
+    }
+
+    fmt.Printf("%s\n", string(body))
+    return nil
+}
+
 func main() {
     // Start listening for input commands from the user
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
@@ -135,6 +190,13 @@ func main() {
             filename := strings.TrimPrefix(command, "store rm ")
             fmt.Printf("Sending delete request for file: %s\n", filename)
             err := deleteFile(filename)
+            if err != nil {
+                log.Printf("Error: %v\n", err)
+            }
+        } else if strings.HasPrefix(command, "store update ") {
+            filename := strings.TrimPrefix(command, "store update ")
+            fmt.Printf("Sending update request for file: %s\n", filename)
+            err := putFile(filename)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
