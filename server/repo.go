@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -105,4 +106,18 @@ func CheckDuplicateHash(db *gorm.DB, hashDigest string) error {
     }
     // If the file is found, it's a duplicate, return an error
     return fmt.Errorf("file with hash_digest %s already exists", hashDigest)
+}
+
+func FetchContentAllFile(db *gorm.DB) (string, error) {
+	var contents []string
+
+	err := db.Raw("SELECT content FROM files").Scan(&contents).Error
+	if err != nil {
+		return "", fmt.Errorf("Error executing query: %v", err)
+	}
+	if len(contents) == 0 {
+		return "", nil
+	}
+	joinedContents := strings.Join(contents, " ")
+	return joinedContents, nil
 }

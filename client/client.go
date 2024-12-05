@@ -225,6 +225,35 @@ func postFile(filenames []string) error {
     return nil
 }
 
+func getWC() {
+    serverURL := "http://localhost:2021/wc"
+
+    // Send a GET request
+    resp, err := http.Get(serverURL)
+    if err != nil {
+        log.Println("Error sending request:", err)
+        return
+    }
+    defer resp.Body.Close()
+
+    // Check if status code is OK
+    if resp.StatusCode != http.StatusOK {
+        log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
+        return
+    }
+
+    // Read the response body
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        log.Println("Error reading response body:", err)
+        return
+    }
+
+    // Print the response body
+    fmt.Printf("%s\n", string(body))
+}
+
+
 func main() {
     // Start listening for input commands from the user
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
@@ -263,6 +292,8 @@ func main() {
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
+        } else if command == "store wc" {
+            getWC()
         } else if command == "store" {
             fmt.Println("Sending request to the server...")
             pingServer()
