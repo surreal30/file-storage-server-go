@@ -13,63 +13,64 @@ import (
 )
 
 // Function to send request to the existing server
-func pingServer(baseURL string) {
+func pingServer(baseURL string) string {
     serverURL := baseURL + "/ping"
 
     // Send a GET request
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
-        return
+        return ""
     }
     defer resp.Body.Close()
 
     // Check if status code is OK
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
-        return
+        return ""
     }
 
     // Read the response body
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
-        return
+        return ""
     }
 
     // Print the response body
     fmt.Printf("%s\n", string(body))
+    return string(body)
 }
 
-func getFiles(baseURL string) {
+func getFiles(baseURL string) string {
     serverURL := baseURL + "/list"
 
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
-        return
+        return ""
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
-        return
+        return ""
     }
 
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
-        return
+        return ""
     }
 
     fmt.Printf("%s\n", string(body))
-
+    return string(body)
 }
 
-func deleteFile(baseURL string, filename string) error {
+func deleteFile(baseURL string, filename string) (string, error) {
     file, err := os.Open(filename)
     if err != nil {
-        return fmt.Errorf("Error opening %s: %v", filename, err)
+        return "", fmt.Errorf("Error opening %s: %v", filename, err)
     }
     defer file.Close()
 
@@ -79,23 +80,23 @@ func deleteFile(baseURL string, filename string) error {
     // Add the file to the request body
     part, err := writer.CreateFormFile("files", filename)
     if err != nil {
-        return fmt.Errorf("Error creating form file: %v", err)
+        return "", fmt.Errorf("Error creating form file: %v", err)
     }
 
     _, err = io.Copy(part, file)
     if err != nil {
-        return fmt.Errorf("Error copying file content: %v", err)
+        return "", fmt.Errorf("Error copying file content: %v", err)
     }
 
     err = writer.Close()
     if err != nil {
-        return fmt.Errorf("Error closing writer: %v", err)
+        return "", fmt.Errorf("Error closing writer: %v", err)
     }
 
     url := baseURL + "/delete"
     req, err := http.NewRequest("DELETE", url, &requestBody)
     if err != nil {
-        return fmt.Errorf("Error creating request: %v", err)
+        return "", fmt.Errorf("Error creating request: %v", err)
     }
 
     req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -103,22 +104,22 @@ func deleteFile(baseURL string, filename string) error {
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        return fmt.Errorf("Error sending request: %v", err)
+        return "", fmt.Errorf("Error sending request: %v", err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("Error: received non-OK response: %v", resp.Status)
+        return "", fmt.Errorf("Error: received non-OK response: %v", resp.Status)
     }
 
     fmt.Println("File successfully deleted!")
-    return nil
+    return "File successfully deleted!", nil
 }
 
-func putFile(baseURL string, filename string) error {
+func putFile(baseURL string, filename string) (string, error) {
     file, err := os.Open(filename)
     if err != nil {
-        return fmt.Errorf("Error opening %s: %v", filename, err)
+        return "", fmt.Errorf("Error opening %s: %v", filename, err)
     }
     defer file.Close()
 
@@ -128,23 +129,23 @@ func putFile(baseURL string, filename string) error {
     // Add the file to the request body
     part, err := writer.CreateFormFile("files", filename)
     if err != nil {
-        return fmt.Errorf("Error creating form file: %v", err)
+        return "", fmt.Errorf("Error creating form file: %v", err)
     }
 
     _, err = io.Copy(part, file)
     if err != nil {
-        return fmt.Errorf("Error copying file content: %v", err)
+        return "", fmt.Errorf("Error copying file content: %v", err)
     }
 
     err = writer.Close()
     if err != nil {
-        return fmt.Errorf("Error closing writer: %v", err)
+        return "", fmt.Errorf("Error closing writer: %v", err)
     }
 
     url := baseURL + "/update"
     req, err := http.NewRequest("PUT", url, &requestBody)
     if err != nil {
-        return fmt.Errorf("Error creating request: %v", err)
+        return "", fmt.Errorf("Error creating request: %v", err)
     }
 
     req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -152,25 +153,25 @@ func putFile(baseURL string, filename string) error {
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        return fmt.Errorf("Error sending request: %v", err)
+        return "", fmt.Errorf("Error sending request: %v", err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("Error: received non-OK response: %v", resp.Status)
+        return "", fmt.Errorf("Error: received non-OK response: %v", resp.Status)
     }
 
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error updating the file: ", err)
-        return nil
+        return "", err
     }
 
     fmt.Printf("%s\n", string(body))
-    return nil
+    return string(body), nil
 }
 
-func postFile(baseURL string, filenames []string) error {
+func postFile(baseURL string, filenames []string) (string, error) {
     var requestBody bytes.Buffer
     writer := multipart.NewWriter(&requestBody)
 
@@ -179,30 +180,30 @@ func postFile(baseURL string, filenames []string) error {
 
         file, err := os.Open(filename)
         if err != nil {
-            return fmt.Errorf("Error opening file '%s': %v", filename, err)
+            return "", fmt.Errorf("Error opening file '%s': %v", filename, err)
         }
         defer file.Close()
 
         part, err := writer.CreateFormFile("files", filename)
         if err != nil {
-            return fmt.Errorf("Error creating form file for '%s': %v", filename, err)
+            return "", fmt.Errorf("Error creating form file for '%s': %v", filename, err)
         }
 
         _, err = io.Copy(part, file)
         if err != nil {
-            return fmt.Errorf("Error copying file content for '%s': %v", filename, err)
+            return "", fmt.Errorf("Error copying file content for '%s': %v", filename, err)
         }
     }
 
     err := writer.Close()
     if err != nil {
-        return fmt.Errorf("Error closing writer: %v", err)
+        return "", fmt.Errorf("Error closing writer: %v", err)
     }
 
     url := baseURL + "/add"
     req, err := http.NewRequest("POST", url, &requestBody)
     if err != nil {
-        return fmt.Errorf("Error creating request: %v", err)
+        return "", fmt.Errorf("Error creating request: %v", err)
     }
 
     req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -210,47 +211,48 @@ func postFile(baseURL string, filenames []string) error {
     client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
-        return fmt.Errorf("Error sending request: %v", err)
+        return "", fmt.Errorf("Error sending request: %v", err)
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("Error: received non-OK response: %v", resp.Status)
+        return "", fmt.Errorf("Error: received non-OK response: %v", resp.Status)
     }
 
     responseBody, _ := io.ReadAll(resp.Body)
     fmt.Println("Server Response:", string(responseBody))
 
     fmt.Println("Files created successfully!")
-    return nil
+    return "Files created successfully!", nil
 }
 
-func getWC(baseURL string) {
+func getWC(baseURL string) (string, error) {
     serverURL := baseURL + "/wc"
 
     // Send a GET request
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
-        return
+        return "", err
     }
     defer resp.Body.Close()
 
     // Check if status code is OK
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
-        return
+        return "", err
     }
 
     // Read the response body
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
-        return
+        return "", err
     }
 
     // Print the response body
     fmt.Printf("%s\n", string(body))
+    return string(body), nil
 }
 
 
@@ -274,14 +276,14 @@ func main() {
         if strings.HasPrefix(command, "store rm ") {
             filename := strings.TrimPrefix(command, "store rm ")
             fmt.Printf("Sending delete request for file: %s\n", filename)
-            err := deleteFile(baseURL, filename)
+            _, err := deleteFile(baseURL, filename)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
         } else if strings.HasPrefix(command, "store update ") {
             filename := strings.TrimPrefix(command, "store update ")
             fmt.Printf("Sending update request for file: %s\n", filename)
-            err := putFile(baseURL, filename)
+            _, err := putFile(baseURL, filename)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
@@ -289,7 +291,7 @@ func main() {
             parts := strings.Fields(command)
             filenames := parts[2:]
             fmt.Println("Sending create request\n")
-            err := postFile(baseURL, filenames)
+            _, err := postFile(baseURL, filenames)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
