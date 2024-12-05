@@ -26,3 +26,24 @@ func testGetWC(t *testing.T) {
 		t.Errorf("Incorrect output")
 	}
 }
+
+
+func testPingServer(t *testing.T) {
+	// mock server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/ping" {
+			http.Error(w, "Not Found", http.StatusNotFound)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "pong working!")
+	}))
+	defer mockServer.Close()
+
+	serverURL := mockServer.URL + "/ping"
+
+	result := pingServer(serverURL)
+	if result != "pong working!" {
+		t.Errorf("Incorrect output")
+	}
+}
