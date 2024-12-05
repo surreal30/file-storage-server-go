@@ -13,8 +13,8 @@ import (
 )
 
 // Function to send request to the existing server
-func pingServer() {
-    serverURL := "http://localhost:2021/ping"
+func pingServer(baseURL string) {
+    serverURL := baseURL + "/ping"
 
     // Send a GET request
     resp, err := http.Get(serverURL)
@@ -41,8 +41,8 @@ func pingServer() {
     fmt.Printf("%s\n", string(body))
 }
 
-func getFiles() {
-    serverURL := "http://localhost:2021/list"
+func getFiles(baseURL string) {
+    serverURL := baseURL + "/list"
 
     resp, err := http.Get(serverURL)
     if err != nil {
@@ -66,7 +66,7 @@ func getFiles() {
 
 }
 
-func deleteFile(filename string) error {
+func deleteFile(baseURL string, filename string) error {
     file, err := os.Open(filename)
     if err != nil {
         return fmt.Errorf("Error opening %s: %v", filename, err)
@@ -92,7 +92,7 @@ func deleteFile(filename string) error {
         return fmt.Errorf("Error closing writer: %v", err)
     }
 
-    url := "http://localhost:2021/delete"
+    url := baseURL + "/delete"
     req, err := http.NewRequest("DELETE", url, &requestBody)
     if err != nil {
         return fmt.Errorf("Error creating request: %v", err)
@@ -115,7 +115,7 @@ func deleteFile(filename string) error {
     return nil
 }
 
-func putFile(filename string) error {
+func putFile(baseURL string, filename string) error {
     file, err := os.Open(filename)
     if err != nil {
         return fmt.Errorf("Error opening %s: %v", filename, err)
@@ -141,7 +141,7 @@ func putFile(filename string) error {
         return fmt.Errorf("Error closing writer: %v", err)
     }
 
-    url := "http://localhost:2021/update"
+    url := baseURL + "/update"
     req, err := http.NewRequest("PUT", url, &requestBody)
     if err != nil {
         return fmt.Errorf("Error creating request: %v", err)
@@ -170,7 +170,7 @@ func putFile(filename string) error {
     return nil
 }
 
-func postFile(filenames []string) error {
+func postFile(baseURL string, filenames []string) error {
     var requestBody bytes.Buffer
     writer := multipart.NewWriter(&requestBody)
 
@@ -199,7 +199,7 @@ func postFile(filenames []string) error {
         return fmt.Errorf("Error closing writer: %v", err)
     }
 
-    url := "http://localhost:2021/add"
+    url := baseURL + "/add"
     req, err := http.NewRequest("POST", url, &requestBody)
     if err != nil {
         return fmt.Errorf("Error creating request: %v", err)
@@ -225,8 +225,8 @@ func postFile(filenames []string) error {
     return nil
 }
 
-func getWC() {
-    serverURL := "http://localhost:2021/wc"
+func getWC(baseURL string) {
+    serverURL := baseURL + "/wc"
 
     // Send a GET request
     resp, err := http.Get(serverURL)
@@ -255,6 +255,7 @@ func getWC() {
 
 
 func main() {
+    baseURL := "http://localhost:2021"
     // Start listening for input commands from the user
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
 
@@ -273,14 +274,14 @@ func main() {
         if strings.HasPrefix(command, "store rm ") {
             filename := strings.TrimPrefix(command, "store rm ")
             fmt.Printf("Sending delete request for file: %s\n", filename)
-            err := deleteFile(filename)
+            err := deleteFile(baseURL, filename)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
         } else if strings.HasPrefix(command, "store update ") {
             filename := strings.TrimPrefix(command, "store update ")
             fmt.Printf("Sending update request for file: %s\n", filename)
-            err := putFile(filename)
+            err := putFile(baseURL, filename)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
@@ -288,17 +289,17 @@ func main() {
             parts := strings.Fields(command)
             filenames := parts[2:]
             fmt.Println("Sending create request\n")
-            err := postFile(filenames)
+            err := postFile(baseURL, filenames)
             if err != nil {
                 log.Printf("Error: %v\n", err)
             }
         } else if command == "store wc" {
-            getWC()
+            getWC(baseURL)
         } else if command == "store" {
             fmt.Println("Sending request to the server...")
-            pingServer()
+            pingServer(baseURL)
         } else if command == "store ls" {
-            getFiles()            
+            getFiles(baseURL)            
         } else if command == "exit" {
             // Exit the program if 'exit' is entered
             fmt.Println("Exiting program...")
