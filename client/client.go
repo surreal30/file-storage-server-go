@@ -12,11 +12,9 @@ import (
     "strings"
 )
 
-// Function to send request to the existing server
 func pingServer(baseURL string) string {
     serverURL := baseURL + "/ping"
 
-    // Send a GET request
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
@@ -24,20 +22,17 @@ func pingServer(baseURL string) string {
     }
     defer resp.Body.Close()
 
-    // Check if status code is OK
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
         return ""
     }
 
-    // Read the response body
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
         return ""
     }
 
-    // Print the response body
     fmt.Printf("%s\n", string(body))
     return string(body)
 }
@@ -77,7 +72,6 @@ func deleteFile(baseURL string, filename string) (string, error) {
     var requestBody bytes.Buffer
     writer := multipart.NewWriter(&requestBody)
 
-    // Add the file to the request body
     part, err := writer.CreateFormFile("files", filename)
     if err != nil {
         return "", fmt.Errorf("Error creating form file: %v", err)
@@ -126,7 +120,6 @@ func putFile(baseURL string, filename string) (string, error) {
     var requestBody bytes.Buffer
     writer := multipart.NewWriter(&requestBody)
 
-    // Add the file to the request body
     part, err := writer.CreateFormFile("files", filename)
     if err != nil {
         return "", fmt.Errorf("Error creating form file: %v", err)
@@ -229,7 +222,6 @@ func postFile(baseURL string, filenames []string) (string, error) {
 func getWC(baseURL string) (string, error) {
     serverURL := baseURL + "/wc"
 
-    // Send a GET request
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
@@ -237,20 +229,17 @@ func getWC(baseURL string) (string, error) {
     }
     defer resp.Body.Close()
 
-    // Check if status code is OK
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
         return "", err
     }
 
-    // Read the response body
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
         return "", err
     }
 
-    // Print the response body
     fmt.Printf("%s\n", string(body))
     return string(body), nil
 }
@@ -258,7 +247,6 @@ func getWC(baseURL string) (string, error) {
 func getFW(baseURL string, limit string, order string) (string, error) {
     serverURL := baseURL + "/fw?limit=" + limit + "&order=" + order
 
-    // Send a GET request
     resp, err := http.Get(serverURL)
     if err != nil {
         log.Println("Error sending request:", err)
@@ -266,20 +254,17 @@ func getFW(baseURL string, limit string, order string) (string, error) {
     }
     defer resp.Body.Close()
 
-    // Check if status code is OK
     if resp.StatusCode != http.StatusOK {
         log.Printf("Error: Received non-OK response status %d\n", resp.StatusCode)
         return "", err
     }
 
-    // Read the response body
     body, err := io.ReadAll(resp.Body)
     if err != nil {
         log.Println("Error reading response body:", err)
         return "", err
     }
 
-    // Print the response body
     fmt.Printf("%s\n", string(body))
     return string(body), nil
 }
@@ -287,21 +272,18 @@ func getFW(baseURL string, limit string, order string) (string, error) {
 
 func main() {
     baseURL := "http://localhost:2021"
-    // Start listening for input commands from the user
+
     fmt.Println("CLI Program started. Type 'store' to send a request to the server.")
 
-    // Create a scanner to read user input
     scanner := bufio.NewScanner(os.Stdin)
 
     for {
-        // Prompt the user for a command
+        // Print to show newline in which user can put command
         fmt.Print("> ")
         scanner.Scan()
 
-        // Get the user input and trim leading/trailing whitespace
         command := strings.TrimSpace(scanner.Text())
 
-        // If 'store' is entered, send a request to the server
         if strings.HasPrefix(command, "store rm ") {
             filename := strings.TrimPrefix(command, "store rm ")
             fmt.Printf("Sending delete request for file: %s\n", filename)
@@ -337,11 +319,9 @@ func main() {
             order := strings.Split(parts[4], "=")[1]
             getFW(baseURL, limit, order)
         } else if command == "exit" {
-            // Exit the program if 'exit' is entered
             fmt.Println("Exiting program...")
             break
         } else {
-            // Inform the user if the command is unknown
             fmt.Println("Unknown command:", command)
         }
     }

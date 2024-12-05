@@ -14,7 +14,7 @@ The client supports the command for which API routes are defined.
 ## Dependencies
 1. MySQL database 
 
-## Installtion
+## Installation
 > Note: You will need to create a local MySQL database.
 1. Create an .env file. Copy .env.sample and replace the placeholder which correct credentials
 2. Install the dependencies by running the following command

@@ -29,17 +29,13 @@ func getPing(w http.ResponseWriter, r *http.Request) {
     io.WriteString(w, "pong working!")
 }
 
+// Save files in DB
 func postFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
-    // Limit the size of the uploaded files (optional)
-    r.ParseMultipartForm(10 << 20) // 10 MB limit
+    r.ParseMultipartForm(10 << 20) 
 
-    // Get all files from the request
     files := r.MultipartForm.File["files"]
 
-
-    // Loop through the files and save them to the database
     for _, fileHeader := range files {
-        // Open the uploaded file
         file, err := fileHeader.Open()
         if err != nil {
             http.Error(w, fmt.Sprintf("Error opening file: %v", err), http.StatusInternalServerError)
@@ -47,7 +43,6 @@ func postFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
         }
         defer file.Close()
 
-        // Read the file content into a byte slice
         fileContent, err := io.ReadAll(file)
         if err != nil {
             http.Error(w, fmt.Sprintf("Error reading file content: %v", err), http.StatusInternalServerError)
@@ -79,11 +74,10 @@ func postFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
         }
     }
 
-    // Send success response
     fmt.Fprintln(w, "Files uploaded successfully")
 }
 
-
+// Get list of files
 func getFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     // Fetch all files from the database
     files, err := server.GetFiles(db)
@@ -97,6 +91,7 @@ func getFiles(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     }
 }
 
+// Delete file
 func deleteFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     r.ParseMultipartForm(10 << 20)
     files := r.MultipartForm.File["files"]
@@ -110,7 +105,6 @@ func deleteFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
         }
         defer file.Close()
 
-        // Read the file content into a byte slice
         fileContent, err := io.ReadAll(file)
         if err != nil {
             http.Error(w, fmt.Sprintf("Error reading file content: %v", err), http.StatusInternalServerError)
@@ -130,6 +124,7 @@ func deleteFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintln(w, "File deleted successfully")
 }
 
+// Update a file if it exists otherwise create a new file
 func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     r.ParseMultipartForm(10 << 20)
     files := r.MultipartForm.File["files"]
@@ -143,7 +138,6 @@ func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
         }
         defer uploadedFile.Close()
 
-        // Read the file content into a byte slice
         fileContent, err := io.ReadAll(uploadedFile)
         if err != nil {
             http.Error(w, fmt.Sprintf("Error reading file content: %v", err), http.StatusInternalServerError)
@@ -188,6 +182,7 @@ func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintln(w, "Files uploaded successfully")
 }
 
+// Fetch word count
 func getWordCount(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     content, err := server.FetchContentAllFile(db)
     if err != nil {
@@ -199,6 +194,7 @@ func getWordCount(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintf(w, "All files contain %d words \n", wc)
 }
 
+// Fetch frequent words
 func getFreqWord(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     limitStr := r.URL.Query().Get("limit")
     order := r.URL.Query().Get("order")
