@@ -290,7 +290,7 @@ func main() {
         } else if strings.HasPrefix(command, "store add") {
             parts := strings.Fields(command)
             filenames := parts[2:]
-            fmt.Println("Sending create request\n")
+            fmt.Println("Sending create request")
             _, err := postFile(baseURL, filenames)
             if err != nil {
                 log.Printf("Error: %v\n", err)
