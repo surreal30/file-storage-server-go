@@ -117,3 +117,47 @@ func TestDeleteFile(t *testing.T) {
 	assert.NoError(t, err, "Expected no error when deleting file")
 	assert.Equal(t, "File successfully deleted!", result, "Expected file deletion success message")
 }
+
+func TestPostFile(t *testing.T) {
+	// Create a mock server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check if the method is POST and the URL is correct
+		if r.Method != http.MethodPost || r.URL.Path != "/add" {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		err := r.ParseMultipartForm(10 << 20) // 10 MB limit
+		if err != nil {
+			http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+			return
+		}
+
+		files := r.MultipartForm.File["files"]
+		if len(files) == 0 {
+			http.Error(w, "No files found in the form", http.StatusInternalServerError)
+			return
+		}
+
+		for _, fileHeader := range files {
+			fmt.Println("Received file:", fileHeader.Filename)
+		}
+
+		// Simulate successful file upload
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "Files created successfully!")
+	}))
+	defer mockServer.Close()
+
+	testFileName := "testfile.txt"
+	err := ioutil.WriteFile(testFileName, []byte("This is a file"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	defer os.Remove(testFileName) // Cleanup after test
+
+	result, err := postFile(mockServer.URL, []string{testFileName})
+
+	assert.NoError(t, err, "Expected no error when creating file")
+	assert.Equal(t, "Files created successfully!", result, "Expected file creation success message success message")
+}
