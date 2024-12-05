@@ -8,12 +8,20 @@ import (
     "log"
     "net/http"
     "os"
+    "sort"
+    "strconv"
     "strings"
     "time"
 
     "file_storage_server/server"
     "gorm.io/gorm"
 )
+
+type WordCount struct {
+    Word  string `json:"word"`
+    Count int    `json:"count"`
+}
+
 
 // Simple function to ping and test if server is up or not
 func getPing(w http.ResponseWriter, r *http.Request) {
@@ -191,6 +199,87 @@ func getWordCount(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintf(w, "All files contain %d words \n", wc)
 }
 
+func getFreqWord(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+    limitStr := r.URL.Query().Get("limit")
+    order := r.URL.Query().Get("order")
+
+    limit := 5
+
+    fmt.Println(limitStr, order)
+
+    if limitStr != "" {
+        fmt.Println(limitStr, order)
+
+        parsedLimit, err := strconv.Atoi(limitStr)
+        fmt.Println("helolsosbfk", err)
+
+        if err != nil {
+            http.Error(w, "Invalid 'limit' parameter", http.StatusBadRequest)
+            return
+        }
+        limit = parsedLimit
+    }
+
+    fmt.Println("ordering now")
+
+    if order != "asc" && order != "dsc" {
+        http.Error(w, "Invalid 'order' parameter. Use 'asc' or 'dsc'.", http.StatusBadRequest)
+        return
+    }
+
+    content, err := server.FetchContentAllFile(db)
+    if err != nil {
+        http.Error(w, fmt.Sprintf("Error fetching files: %v", err), http.StatusInternalServerError)
+        return
+    }
+
+    fmt.Println("files fetched now")
+
+
+    words := strings.Split(content, " ")
+    wordCounts := make(map[string]int)
+
+    // Count frequency of each word
+    for _, word := range words {
+        wordCounts[word]++
+    }
+
+    var wordCountList []WordCount
+    for word, count := range wordCounts {
+        wordCountList = append(wordCountList, WordCount{
+            Word:  word,
+            Count: count,
+        })
+    }
+
+    fmt.Println("counting now")
+
+    var ordering string
+    if order == "dsc" {
+        sort.Slice(wordCountList, func(i, j int) bool {
+            return wordCountList[i].Count > wordCountList[j].Count
+        })
+        ordering = "most"
+    } else {
+        sort.Slice(wordCountList, func(i, j int) bool {
+            return wordCountList[i].Count < wordCountList[j].Count
+        })
+        ordering = "least"
+    }
+
+    fmt.Println("sorting now")
+
+
+    if limit > len(wordCountList) {
+        limit = len(wordCountList)
+    }
+
+    fmt.Fprintf(w, "The %d %s frequent words are:\n", limit, ordering)
+    for _, wc := range wordCountList[:limit] {
+        fmt.Fprintf(w, "%s\n", wc.Word)
+    }
+}
+
 func main() {
     db, err := server.ConnectToDatabase()
     if err != nil {
@@ -213,6 +302,9 @@ func main() {
     })
     http.HandleFunc("/wc", func(w http.ResponseWriter, r *http.Request) {
         getWordCount(w, r, db)
+    })
+    http.HandleFunc("/fw", func(w http.ResponseWriter, r *http.Request) {
+        getFreqWord(w, r, db)
     })
 
 
