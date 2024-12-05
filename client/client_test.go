@@ -161,3 +161,42 @@ func TestPostFile(t *testing.T) {
 	assert.NoError(t, err, "Expected no error when creating file")
 	assert.Equal(t, "Files created successfully!", result, "Expected file creation success message success message")
 }
+
+func TestPutFile(t *testing.T) {
+	// Create a mock server
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut || r.URL.Path != "/update" {
+			http.Error(w, "Invalid request", http.StatusBadRequest)
+			return
+		}
+
+		err := r.ParseMultipartForm(10 << 20)
+		if err != nil {
+			http.Error(w, "Error parsing form data", http.StatusInternalServerError)
+			return
+		}
+		file, _, err := r.FormFile("files")
+		if err != nil {
+			http.Error(w, "Error retrieving file", http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "File updated successfully!")
+	}))
+	defer mockServer.Close()
+
+	testFileName := "testfile.txt"
+	err := ioutil.WriteFile(testFileName, []byte("This is a file"), 0644)
+	if err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	defer os.Remove(testFileName)
+
+
+	result, err := putFile(mockServer.URL, testFileName)
+
+	assert.NoError(t, err, "Expected no error when updating file")
+	assert.Equal(t, "File updated successfully!\n", result, "Expected file deletion success message")
+}
