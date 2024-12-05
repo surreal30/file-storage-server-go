@@ -158,7 +158,7 @@ func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
                 http.Error(w, fmt.Sprintf("Some error occured while updating, %s", err), http.StatusInternalServerError)
                 return
             }
-            fmt.Fprintln(w, "Files updated successfully\n")
+            fmt.Fprintln(w, "Files updated successfully")
             return
         }
 
