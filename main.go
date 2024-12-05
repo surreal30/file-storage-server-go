@@ -8,6 +8,7 @@ import (
     "log"
     "net/http"
     "os"
+    "strings"
     "time"
 
     "file_storage_server/server"
@@ -179,6 +180,17 @@ func putFile(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
     fmt.Fprintln(w, "Files uploaded successfully")
 }
 
+func getWordCount(w http.ResponseWriter, r *http.Request, db *gorm.DB) {
+    content, err := server.FetchContentAllFile(db)
+    if err != nil {
+        http.Error(w, fmt.Sprintf("Error fetching files: %v", err), http.StatusInternalServerError)
+        return
+    }
+
+    wc := len(strings.Split(content, " "))
+    fmt.Fprintf(w, "All files contain %d words \n", wc)
+}
+
 func main() {
     db, err := server.ConnectToDatabase()
     if err != nil {
@@ -198,6 +210,9 @@ func main() {
     })
     http.HandleFunc("/update", func(w http.ResponseWriter, r *http.Request) {
         putFile(w, r, db)
+    })
+    http.HandleFunc("/wc", func(w http.ResponseWriter, r *http.Request) {
+        getWordCount(w, r, db)
     })
 
 
